@@ -10,12 +10,13 @@ export const Route = createFileRoute("/admin/signup")({
 function AdminSignup() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -26,7 +27,7 @@ function AdminSignup() {
     }
 
     setLoading(true);
-    const result = signup(username, password);
+    const result = await signup(username, email, password);
 
     if (result.success) {
       navigate({ to: "/admin/login" });
@@ -73,6 +74,19 @@ function AdminSignup() {
             </label>
 
             <label className="space-y-2 text-sm">
+              <span className="font-medium text-foreground">Email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-border px-4 py-3 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                placeholder="you@example.com"
+                disabled={loading}
+                autoComplete="email"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm">
               <span className="font-medium text-foreground">Password</span>
               <input
                 type="password"
@@ -100,7 +114,7 @@ function AdminSignup() {
 
             <button
               type="submit"
-              disabled={loading || !username.trim() || !password.trim() || !confirmPassword.trim()}
+              disabled={loading || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
               className="w-full rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold py-3 hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating account..." : "Sign Up"}

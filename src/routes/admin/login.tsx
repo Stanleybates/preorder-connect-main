@@ -14,12 +14,12 @@ function AdminLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = login(username, password);
+    const result = await login(username, password);
 
     if (result.success) {
       navigate({ to: "/admin" });

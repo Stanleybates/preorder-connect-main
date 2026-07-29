@@ -53,6 +53,42 @@ export function removeProduct(id: string) {
   if (idx >= 0) PRODUCTS.splice(idx, 1);
 }
 
+export type StoreSettings = {
+  name: string;
+  tagline: string;
+  whatsapp: string;
+  currency: string;
+  paymentProvider: string;
+  checkoutUrl: string;
+};
+
+export function updateStoreSettings(settings: StoreSettings) {
+  STORE.name = settings.name;
+  STORE.tagline = settings.tagline;
+  STORE.whatsapp = settings.whatsapp;
+  STORE.currency = settings.currency;
+  STORE.payment.provider = settings.paymentProvider;
+  STORE.payment.name = settings.name;
+  (STORE.payment as { checkoutUrl: string }).checkoutUrl = settings.checkoutUrl;
+}
+
+export function getStoreStats() {
+  const inStock = PRODUCTS.filter(p => p.status === "in-stock").length;
+  const preStock = PRODUCTS.filter(p => p.status === "pre-stock").length;
+  const inventoryValue = PRODUCTS.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
+  const categoriesUsed = new Set(PRODUCTS.map(p => p.category)).size;
+  const revenue = PAYMENTS.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  return {
+    total: PRODUCTS.length,
+    inStock,
+    preStock,
+    inventoryValue,
+    categoriesUsed,
+    payments: PAYMENTS.length,
+    revenue,
+  };
+}
+
 export type StockStatus = "in-stock" | "pre-stock";
 
 export type Product = {

@@ -165,10 +165,91 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  33%  { transform: translate3d(6%, -4%, 0) scale(1.1); }
+  66%  { transform: translate3d(-5%, 5%, 0) scale(0.95); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes reveal-scale {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shine-sweep {
+  0%   { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
 
 @utility animate-float-slow {
   animation: float-slow 8s ease-in-out infinite;
 }
 @utility animate-pulse-glow {
   animation: pulse-glow 3s ease-in-out infinite;
+}
+@utility animate-aurora {
+  animation: aurora-drift 18s ease-in-out infinite;
+}
+@utility animate-bob {
+  animation: bob 3s ease-in-out infinite;
+}
+
+/* Animated gradient text — pairs with .text-gradient / .text-neon */
+@utility text-gradient-anim {
+  background: linear-gradient(90deg,
+    oklch(0.55 0.25 295), oklch(0.6 0.2 230), oklch(0.6 0.18 195), oklch(0.55 0.25 295));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 6s ease infinite;
+}
+
+/* Scroll reveal — hidden until .is-visible is toggled by IntersectionObserver */
+@utility reveal {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  animation: reveal-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.reveal-scale.is-visible {
+  animation: reveal-scale 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Shine sweep used on buttons/cards */
+@utility shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, oklch(1 0 0 / 0.35) 50%, transparent 70%);
+  transform: translateX(-120%) skewX(-20deg);
+}
+.shine:hover::after {
+  animation: shine-sweep 0.9s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-scale { opacity: 1 !important; animation: none !important; }
+  .animate-aurora, .animate-float-slow, .animate-pulse-glow, .animate-bob,
+  .text-gradient-anim { animation: none !important; }
 }

@@ -10,9 +10,9 @@ export function ProductCard({ product }: { product: Product }) {
   const priceHover = isInStock ? "group-hover:text-primary-foreground" : "group-hover:text-white";
 
   return (
-    <div className="group bg-card rounded-3xl overflow-hidden border border-border/70 shadow-[0_4px_20px_-8px_rgb(0_0_0_/_0.08)] hover:shadow-[0_24px_60px_-20px_oklch(0.55_0.25_295_/_0.25)] hover:border-primary/30 transition-all duration-500 flex flex-col">
+    <div className="group h-full bg-card rounded-3xl overflow-hidden border border-border/70 shadow-[0_4px_20px_-8px_rgb(0_0_0_/_0.08)] hover:shadow-[0_24px_60px_-20px_oklch(0.55_0.25_295_/_0.25)] hover:border-primary/30 hover:-translate-y-1.5 transition-all duration-500 flex flex-col">
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+      <div className="shine relative aspect-[4/3] overflow-hidden bg-muted">
         <SmartImage
           src={product.image}
           alt={product.name}

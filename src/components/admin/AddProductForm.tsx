@@ -5,9 +5,10 @@ import { CATEGORIES, addProduct } from "@/lib/store-data";
 type Props = {
   onChange: () => void;
   notify: (message: string, type: "success" | "error") => void;
+  onDone?: () => void;
 };
 
-export function AddProductForm({ onChange, notify }: Props) {
+export function AddProductForm({ onChange, notify, onDone }: Props) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("iphones");
   const [price, setPrice] = useState("");
@@ -66,6 +67,7 @@ export function AddProductForm({ onChange, notify }: Props) {
       notify(`Product "${newProduct.name}" added successfully!`, "success");
       resetForm();
       onChange();
+      onDone?.();
     } else {
       notify("Failed to add product. Try again.", "error");
     }

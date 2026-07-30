@@ -21,7 +21,15 @@ export type PaymentRecord = {
   status: string;
   date: string;
   note?: string;
+  payerName?: string;
+  payerEmail?: string;
 };
+
+export function updatePaymentStatus(id: string, status: string) {
+  const p = PAYMENTS.find(x => x.id === id);
+  if (p) p.status = status;
+  return p;
+}
 
 export const PAYMENTS: PaymentRecord[] = [];
 
@@ -194,4 +202,105 @@ export function whatsappLink(p: Product) {
   const msg = `Hi ${STORE.name}! I'd like to order:%0A%0A*${p.name}*%0APrice: ${formatPrice(p.price)}%0AStatus: ${p.status === "in-stock" ? "In Stock" : "Pre-Order"}%0AID: ${p.id}%0A%0AIs it available?`;
   const phone = STORE.whatsapp.replace(/[^\d]/g, "");
   return `https://wa.me/${phone}?text=${msg}`;
+}
+
+
+// --- Categories ---
+export function addCategory(cat: { id: string; name: string; emoji: string; desc: string }) {
+  if (CATEGORIES.find(c => c.id === cat.id)) return null;
+  CATEGORIES.push(cat);
+  return cat;
+}
+
+// --- Sub-admin requests (mock, in-memory placeholder until wired to backend) ---
+export type SubAdminRequest = {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
+  roleRequested: string;
+  date: string;
+  status: "pending" | "approved" | "rejected";
+};
+
+export const SUB_ADMIN_REQUESTS: SubAdminRequest[] = [];
+
+export function createSubAdminRequest(input: Omit<SubAdminRequest, "id" | "status">) {
+  const request: SubAdminRequest = {
+    id: `req${Date.now()}`,
+    status: "pending",
+    ...input,
+  };
+  SUB_ADMIN_REQUESTS.push(request);
+  return request;
+}
+
+export function approveSubAdmin(id: string) {
+  const r = SUB_ADMIN_REQUESTS.find(x => x.id === id);
+  if (r) r.status = "approved";
+  return r;
+}
+
+export function rejectSubAdmin(id: string) {
+  const r = SUB_ADMIN_REQUESTS.find(x => x.id === id);
+  if (r) r.status = "rejected";
+  return r;
+}
+
+// --- Promotions ---
+export type Promotion = {
+  id: string;
+  title: string;
+  productIds: string[];
+  discountPercent: number;
+  active: boolean;
+};
+
+export const PROMOTIONS: Promotion[] = [];
+
+export function addPromotion(promo: Omit<Promotion, "id">) {
+  const record: Promotion = { id: `promo${Date.now()}`, ...promo };
+  PROMOTIONS.push(record);
+  return record;
+}
+
+export function removePromotion(id: string) {
+  const idx = PROMOTIONS.findIndex(p => p.id === id);
+  if (idx >= 0) PROMOTIONS.splice(idx, 1);
+}
+
+export function togglePromotion(id: string) {
+  const p = PROMOTIONS.find(x => x.id === id);
+  if (p) p.active = !p.active;
+  return p;
+}
+
+// --- Analysis metrics ---
+export function getAnalysisMetrics(days: number) {
+  const inStock = PRODUCTS.filter(p => p.status === "in-stock").length;
+  const preStock = PRODUCTS.filter(p => p.status === "pre-stock").length;
+  const completedPayments = PAYMENTS.filter(p => p.status === "completed" || p.status === "success").length;
+  const pendingPayments = PAYMENTS.filter(p => p.status === "pending").length;
+
+  const dayBuckets: { date: string; amount: number }[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const label = d.toISOString().slice(0, 10);
+    const amount = PAYMENTS
+      .filter(p => p.date?.slice(0, 10) === label)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    dayBuckets.push({ date: label, amount });
+  }
+
+  return {
+    totalProducts: PRODUCTS.length,
+    inStock,
+    preStock,
+    totalPayments: PAYMENTS.length,
+    completedPayments,
+    pendingPayments,
+    paymentsByDay: dayBuckets,
+    subAdminPending: SUB_ADMIN_REQUESTS.filter(r => r.status === "pending").length,
+  };
 }

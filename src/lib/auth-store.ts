@@ -113,6 +113,84 @@ export function getCurrentUser(): User | null {
   return CURRENT_USER;
 }
 
+// Change password while logged in (old + new password)
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  if (!ACCESS_TOKEN) {
+    return { success: false, message: "Not logged in" };
+  }
+
+  const res = await fetch(`${API_BASE_URL}/change-password/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+    },
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+  });
+
+  const data = await parseJsonSafe(res);
+
+  if (!res.ok) {
+    return { success: false, message: data?.detail || "Failed to change password" };
+  }
+
+  return { success: true, message: "Password changed successfully" };
+}
+
+// Forgot password: request a reset link via email (no login required)
+export async function requestPasswordReset(
+  email: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/request-password-reset/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await parseJsonSafe(res);
+
+  if (!res.ok) {
+    return { success: false, message: data?.detail || "Failed to send reset link" };
+  }
+
+  return { success: true, message: data?.detail || "If that email is registered, a reset link has been sent." };
+}
+
+// Forgot password: confirm the new password using the emailed token
+export async function confirmPasswordReset(
+  uidb64: string,
+  token: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/reset-password-confirm/${uidb64}/${token}/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+
+  const data = await parseJsonSafe(res);
+
+  if (!res.ok) {
+    return { success: false, message: data?.detail || "Invalid or expired reset link" };
+  }
+
+  return { success: true, message: data?.detail || "Password has been reset." };
+}
+
+// Profile photo — in-memory only, resets on page refresh by design
+let PROFILE_PHOTO: string | null = null;
+
+export function getProfilePhoto(): string | null {
+  return PROFILE_PHOTO;
+}
+
+export function setProfilePhoto(dataUrl: string | null) {
+  PROFILE_PHOTO = dataUrl;
+}
+
 export function getAccessToken(): string | null {
   return ACCESS_TOKEN;
 }

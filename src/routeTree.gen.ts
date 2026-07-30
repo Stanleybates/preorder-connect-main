@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminSignupRouteImport } from './routes/admin/signup'
 import { Route as AdminResetPasswordRouteImport } from './routes/admin/reset-password'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminResetPasswordUidb64TokenRouteImport } from './routes/admin/reset-password.$uidb64.$token'
 
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
@@ -40,28 +41,37 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminResetPasswordUidb64TokenRoute =
+  AdminResetPasswordUidb64TokenRouteImport.update({
+    id: '/$uidb64/$token',
+    path: '/$uidb64/$token',
+    getParentRoute: () => AdminResetPasswordRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/admin/reset-password': typeof AdminResetPasswordRoute
+  '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
+  '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/admin/reset-password': typeof AdminResetPasswordRoute
+  '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
+  '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/admin/reset-password': typeof AdminResetPasswordRoute
+  '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
+  '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,6 +81,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
+    | '/admin/reset-password/$uidb64/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -78,6 +89,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
+    | '/admin/reset-password/$uidb64/$token'
   id:
     | '__root__'
     | '/'
@@ -85,6 +97,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
+    | '/admin/reset-password/$uidb64/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,18 +142,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reset-password/$uidb64/$token': {
+      id: '/admin/reset-password/$uidb64/$token'
+      path: '/$uidb64/$token'
+      fullPath: '/admin/reset-password/$uidb64/$token'
+      preLoaderRoute: typeof AdminResetPasswordUidb64TokenRouteImport
+      parentRoute: typeof AdminResetPasswordRoute
+    }
   }
 }
 
+interface AdminResetPasswordRouteChildren {
+  AdminResetPasswordUidb64TokenRoute: typeof AdminResetPasswordUidb64TokenRoute
+}
+
+const AdminResetPasswordRouteChildren: AdminResetPasswordRouteChildren = {
+  AdminResetPasswordUidb64TokenRoute: AdminResetPasswordUidb64TokenRoute,
+}
+
+const AdminResetPasswordRouteWithChildren =
+  AdminResetPasswordRoute._addFileChildren(AdminResetPasswordRouteChildren)
+
 interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
-  AdminResetPasswordRoute: typeof AdminResetPasswordRoute
+  AdminResetPasswordRoute: typeof AdminResetPasswordRouteWithChildren
   AdminSignupRoute: typeof AdminSignupRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
-  AdminResetPasswordRoute: AdminResetPasswordRoute,
+  AdminResetPasswordRoute: AdminResetPasswordRouteWithChildren,
   AdminSignupRoute: AdminSignupRoute,
 }
 

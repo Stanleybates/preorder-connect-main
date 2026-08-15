@@ -56,9 +56,78 @@ export function addProduct(product: Product) {
   return product;
 }
 
-export function removeProduct(id: string) {
+export type DeletedProductRecord = {
+  product: Product;
+  reason: string;
+  deletedBy: string;
+  deletedAt: string;
+};
+
+export const DELETED_PRODUCTS: DeletedProductRecord[] = [];
+
+export function removeProduct(id: string, reason: string, deletedBy: string) {
   const idx = PRODUCTS.findIndex(p => p.id === id);
-  if (idx >= 0) PRODUCTS.splice(idx, 1);
+  if (idx < 0) return null;
+  const [product] = PRODUCTS.splice(idx, 1);
+  DELETED_PRODUCTS.unshift({
+    product,
+    reason: reason.trim() || "No reason given",
+    deletedBy,
+    deletedAt: new Date().toISOString(),
+  });
+  return product;
+}
+
+export function restoreProduct(id: string) {
+  const idx = DELETED_PRODUCTS.findIndex(d => d.product.id === id);
+  if (idx < 0) return null;
+  const [record] = DELETED_PRODUCTS.splice(idx, 1);
+  PRODUCTS.push(record.product);
+  return record.product;
+}
+
+// --- Promotion requests (sub-admin submits, super admin reviews) ---
+export type PromoRequest = {
+  id: string;
+  title: string;
+  reason: string;
+  benefits: string;
+  projectedProfit: string;
+  discountPercent: number;
+  productIds: string[];
+  requestedBy: string;
+  date: string;
+  status: "pending" | "approved" | "rejected";
+};
+
+export const PROMO_REQUESTS: PromoRequest[] = [];
+
+export function createPromoRequest(input: Omit<PromoRequest, "id" | "status">) {
+  const request: PromoRequest = {
+    id: `promoreq${Date.now()}`,
+    status: "pending",
+    ...input,
+  };
+  PROMO_REQUESTS.push(request);
+  return request;
+}
+
+export function approvePromoRequest(id: string) {
+  const req = PROMO_REQUESTS.find(r => r.id === id);
+  if (!req) return null;
+  req.status = "approved";
+  return addPromotion({
+    title: req.title,
+    productIds: req.productIds,
+    discountPercent: req.discountPercent,
+    active: true,
+  });
+}
+
+export function rejectPromoRequest(id: string) {
+  const req = PROMO_REQUESTS.find(r => r.id === id);
+  if (req) req.status = "rejected";
+  return req;
 }
 
 export type StoreSettings = {

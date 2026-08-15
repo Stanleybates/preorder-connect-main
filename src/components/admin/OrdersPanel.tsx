@@ -1,61 +1,102 @@
-export function OrdersPanel() {
-  const orderRows = [
-    { title: "Order #A1024", state: "Processing", note: "Awaiting dispatch" },
-    { title: "Order #A1025", state: "Shipped", note: "Courier tracking active" },
-    { title: "Order #A1026", state: "Delivered", note: "Delivery confirmed" },
-  ];
+import { useEffect, useState } from "react";
+import { Package, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { getOrders, updateOrderStatus, type Order } from "@/lib/orders-api";
 
-  const preorders = [
-    { title: "Pre-order: iPhone 17 Pro Max", eta: "Arrives in 10 days" },
-    { title: "Pre-order: AirPods Pro 2", eta: "Arrives in 5 days" },
-  ];
+type Props = {
+  notify: (message: string, type: "success" | "error") => void;
+};
 
-  const warnings = [
-    "Low stock warning on iPhone 13 Pro 256GB",
-    "Movement warning: 4 units pending warehouse update",
-    "Refund warning: verify cancelled order A1018",
-  ];
+const STATUS_OPTIONS: { value: Order["status"]; label: string; icon: React.ReactNode }[] = [
+  { value: "processing", label: "Processing", icon: <Package className="h-3.5 w-3.5" /> },
+  { value: "shipped", label: "Shipped", icon: <Truck className="h-3.5 w-3.5" /> },
+  { value: "delivered", label: "Delivered", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  { value: "cancelled", label: "Cancelled", icon: <XCircle className="h-3.5 w-3.5" /> },
+];
+
+const statusStyle: Record<Order["status"], string> = {
+  processing: "bg-warning/10 text-warning",
+  shipped: "bg-primary/10 text-primary",
+  delivered: "bg-success/10 text-success",
+  cancelled: "bg-destructive/10 text-destructive",
+};
+
+export function OrdersPanel({ notify }: Props) {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const load = async () => {
+    const data = await getOrders();
+    setOrders(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const onStatusChange = async (id: number, status: Order["status"]) => {
+    setUpdatingId(id);
+    const result = await updateOrderStatus(id, status);
+    if (result.success) {
+      setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));
+      notify(`Order #${id} marked ${status}.`, "success");
+    } else {
+      notify(result.message, "error");
+    }
+    setUpdatingId(null);
+  };
+
+  if (loading) {
+    return <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Loading orders…</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-        Placeholder view — wire this up to real order data when ready.
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {orderRows.map(order => (
-          <div key={order.title} className="rounded-3xl border border-border bg-gradient-to-br from-sky-50 to-white p-4">
-            <p className="text-sm font-semibold text-foreground">{order.title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{order.state}</p>
-            <p className="mt-2 text-xs uppercase tracking-[0.24em] text-muted-foreground">{order.note}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-3xl border border-border bg-card p-5">
-          <p className="text-sm font-semibold">Pre-orders</p>
-          <div className="mt-4 grid gap-3">
-            {preorders.map(item => (
-              <div key={item.title} className="rounded-2xl bg-muted/50 p-4">
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{item.eta}</p>
-              </div>
-            ))}
-          </div>
+    <div className="space-y-4">
+      {orders.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          No orders yet. Orders are created automatically once a payment succeeds.
         </div>
+      ) : (
+        <div className="grid gap-3">
+          {orders.map(order => (
+            <div key={order.id} className="rounded-2xl border border-border bg-card p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="truncate font-semibold">
+                    {order.product_name ?? "Unknown product"}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {order.customer_name || order.customer_email || "Unknown customer"} · {new Date(order.created_at).toLocaleDateString()}
+                  </div>
+                  {order.amount && (
+                    <div className="mt-1 text-sm font-semibold">GH₵ {Number(order.amount).toLocaleString()}</div>
+                  )}
+                </div>
 
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
-          <p className="text-sm font-semibold text-amber-900">Movement warnings</p>
-          <div className="mt-4 grid gap-3">
-            {warnings.map(item => (
-              <div key={item} className="rounded-2xl bg-white/80 p-4 text-sm text-amber-900">
-                {item}
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${statusStyle[order.status]}`}>
+                    {STATUS_OPTIONS.find(s => s.value === order.status)?.icon}
+                    {order.status}
+                  </span>
+                  <select
+                    value={order.status}
+                    onChange={e => onStatusChange(order.id, e.target.value as Order["status"])}
+                    disabled={updatingId === order.id}
+                    className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:border-primary disabled:opacity-50"
+                  >
+                    {STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        Set: {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

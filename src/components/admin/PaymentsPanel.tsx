@@ -1,38 +1,42 @@
-import { CreditCard, ExternalLink } from "lucide-react";
-import { PAYMENTS, STORE, PRODUCTS, formatPrice, getStoreStats } from "@/lib/store-data";
+import { useEffect, useState } from "react";
+import { CreditCard } from "lucide-react";
+import { getPayments, type Payment } from "@/lib/payments-api";
+import { STORE } from "@/lib/store-data";
 
 export function PaymentsPanel() {
-  const stats = getStoreStats();
-  const checkoutUrl = (STORE.payment as { checkoutUrl?: string }).checkoutUrl ?? "";
-  const productName = (id: string) => PRODUCTS.find(p => p.id === id)?.name ?? id;
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getPayments().then(data => {
+      setPayments(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const totalRevenue = payments
+    .filter(p => p.status === "success")
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+
+  if (loading) {
+    return <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Loading payments…</div>;
+  }
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-3d">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Provider</div>
-          <div className="mt-1 font-display font-bold">{STORE.payment.provider}</div>
+          <div className="mt-1 font-display font-bold">Paystack</div>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4 shadow-3d">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Transactions</div>
-          <div className="mt-1 font-display font-bold">{stats.payments}</div>
+          <div className="mt-1 font-display font-bold">{payments.length}</div>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4 shadow-3d">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Total revenue</div>
-          <div className="mt-1 font-display font-bold">{formatPrice(stats.revenue)}</div>
+          <div className="mt-1 font-display font-bold">{STORE.currency} {totalRevenue.toLocaleString()}</div>
         </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-3d">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">Checkout URL</div>
-        <a
-          href={checkoutUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1 inline-flex items-center gap-1.5 break-all text-sm font-medium text-primary hover:underline"
-        >
-          {checkoutUrl} <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-        </a>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-4 shadow-3d">
@@ -40,24 +44,28 @@ export function PaymentsPanel() {
           <CreditCard className="h-4 w-4 text-muted-foreground" />
           <h3 className="font-semibold">Recent payments</h3>
         </div>
-        {PAYMENTS.length === 0 ? (
+        {payments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             No payments recorded yet.
           </div>
         ) : (
           <div className="grid gap-2">
-            {PAYMENTS.map(pay => (
-              <div key={pay.id} className="flex items-center justify-between rounded-xl bg-background p-3">
+            {payments.map(pay => (
+              <div key={pay.id} className="flex flex-col gap-2 rounded-xl bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{productName(pay.productId)}</div>
-                  <div className="text-xs text-muted-foreground">{pay.date}</div>
+                  <div className="truncate text-sm font-medium">{pay.product_name ?? "Unknown product"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {pay.payer_name || pay.payer_email || "Unknown payer"} · {new Date(pay.created_at).toLocaleString()}
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold">{formatPrice(pay.amount)}</span>
+                  <span className="text-sm font-semibold">{STORE.currency} {Number(pay.amount).toLocaleString()}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      pay.status === "success" || pay.status === "paid"
+                      pay.status === "success"
                         ? "bg-success/10 text-success"
+                        : pay.status === "refunded"
+                        ? "bg-muted text-muted-foreground"
                         : "bg-warning/10 text-warning"
                     }`}
                   >

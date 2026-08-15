@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { login } from "@/lib/auth-store";
+import { API_BASE_URL } from "@/lib/api-config";
 import { Package } from "lucide-react";
 
 export const Route = createFileRoute("/admin/login")({
@@ -13,6 +14,22 @@ function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [failureLimit, setFailureLimit] = useState<number | null>(null);
+  const [cooloffHours, setCooloffHours] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/security-config/`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setFailureLimit(data.failure_limit);
+          setCooloffHours(data.cooloff_hours);
+        }
+      })
+      .catch(() => {
+        // Silently fall back to generic copy below if this fails
+      });
+  }, []);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -107,7 +124,10 @@ function AdminLogin() {
         {/* Security Note */}
         <div className="mt-8 rounded-2xl bg-blue-50 border border-blue-200 p-4">
           <p className="text-xs text-blue-700">
-            <strong>Security:</strong> Your account will be locked after 3 failed login attempts. It will automatically unlock after 24 hours.
+            <strong>Security:</strong>{" "}
+            {failureLimit !== null && cooloffHours !== null
+              ? `Your account will be locked after ${failureLimit} failed login attempts. It will automatically unlock after ${cooloffHours} hours.`
+              : "Repeated failed login attempts will temporarily lock your account for security."}
           </p>
         </div>
       </div>

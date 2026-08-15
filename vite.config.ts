@@ -9,7 +9,7 @@ import consolePanel from "vite-plugin-console-panel";
 
 export default defineConfig({
   vite: {
-    plugins: [consolePanel()],
+    plugins: [consolePanel({ securityBackendUrl: "http://localhost:8001" })],
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).

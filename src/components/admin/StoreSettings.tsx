@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Save, Store, UserCircle } from "lucide-react";
-import { STORE, updateStoreSettings } from "@/lib/store-data";
+import { useSiteSettings, updateSiteSettingsApi } from "@/lib/catalog-api";
+import { getAccessToken } from "@/lib/auth-store";
 import { AccountPanel } from "@/components/admin/AccountPanel";
 
 type InnerTab = "store" | "account";
@@ -9,46 +10,85 @@ type Props = {
   onChange: () => void;
   notify: (message: string, type: "success" | "error") => void;
   initialInnerTab?: InnerTab;
+  isSuperAdmin?: boolean;
 };
 
-export function StoreSettings({ onChange, notify, initialInnerTab }: Props) {
-  const [innerTab, setInnerTab] = useState<InnerTab>(initialInnerTab ?? "store");
+export function StoreSettings({ onChange, notify, initialInnerTab, isSuperAdmin }: Props) {
+  const [innerTab, setInnerTab] = useState<InnerTab>(isSuperAdmin ? (initialInnerTab ?? "store") : "account");
 
   useEffect(() => {
-    if (initialInnerTab) setInnerTab(initialInnerTab);
-  }, [initialInnerTab]);
-  const [name, setName] = useState(STORE.name);
-  const [tagline, setTagline] = useState(STORE.tagline);
-  const [whatsapp, setWhatsapp] = useState(STORE.whatsapp);
-  const [currency, setCurrency] = useState(STORE.currency);
-  const [provider, setProvider] = useState(STORE.payment.provider);
-  const [checkoutUrl, setCheckoutUrl] = useState((STORE.payment as { checkoutUrl?: string }).checkoutUrl ?? "");
+    if (!isSuperAdmin) {
+      setInnerTab("account");
+    } else if (initialInnerTab) {
+      setInnerTab(initialInnerTab);
+    }
+  }, [initialInnerTab, isSuperAdmin]);
+  const { data: settings, isLoading: settingsLoading, refetch } = useSiteSettings();
+  const [name, setName] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [provider, setProvider] = useState("");
+  const [checkoutUrl, setCheckoutUrl] = useState("");
+  const [currencyCode, setCurrencyCode] = useState("GHS");
+  const [saving, setSaving] = useState(false);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (settings) {
+      setName(settings.name);
+      setTagline(settings.tagline);
+      setWhatsapp(settings.whatsapp);
+      setCurrency(settings.currency);
+      setCurrencyCode(settings.currency_code || "GHS");
+      setProvider(settings.payment_provider);
+      setCheckoutUrl(settings.checkout_url);
+    }
+  }, [settings]);
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim() || !whatsapp.trim() || !currency.trim()) {
       notify("Store name, WhatsApp number, and currency are required.", "error");
       return;
     }
-    updateStoreSettings({
-      name: name.trim(),
-      tagline: tagline.trim(),
-      whatsapp: whatsapp.trim(),
-      currency: currency.trim(),
-      paymentProvider: provider.trim(),
-      checkoutUrl: checkoutUrl.trim(),
-    });
-    notify("Store settings saved.", "success");
-    onChange();
+    const token = getAccessToken();
+    if (!token) {
+      notify("You must be logged in as super admin to save settings.", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateSiteSettingsApi(
+        {
+          name: name.trim(),
+          tagline: tagline.trim(),
+          whatsapp: whatsapp.trim(),
+          currency: currency.trim(),
+          currency_code: currencyCode,
+          payment_provider: provider.trim(),
+          checkout_url: checkoutUrl.trim(),
+        },
+        token
+      );
+      notify("Store settings saved.", "success");
+      refetch();
+      onChange();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Failed to save settings.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputClass =
     "w-full rounded-xl border border-border px-3 py-2 bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary";
 
-  const innerTabs: { id: InnerTab; label: string; icon: React.ReactNode }[] = [
-    { id: "store", label: "Store", icon: <Store className="h-4 w-4" /> },
-    { id: "account", label: "Account", icon: <UserCircle className="h-4 w-4" /> },
-  ];
+  const innerTabs: { id: InnerTab; label: string; icon: React.ReactNode }[] = isSuperAdmin
+    ? [
+        { id: "store", label: "Store", icon: <Store className="h-4 w-4" /> },
+        { id: "account", label: "Account", icon: <UserCircle className="h-4 w-4" /> },
+      ]
+    : [{ id: "account", label: "Account", icon: <UserCircle className="h-4 w-4" /> }];
 
   return (
     <div className="space-y-4">
@@ -94,6 +134,16 @@ export function StoreSettings({ onChange, notify, initialInnerTab }: Props) {
               <input value={currency} onChange={e => setCurrency(e.target.value)} className={inputClass} placeholder="GH₵" />
             </label>
             <label className="space-y-2 text-sm">
+              <span className="font-medium">Checkout currency (Paystack)</span>
+              <select value={currencyCode} onChange={e => setCurrencyCode(e.target.value)} className={inputClass}>
+                <option value="GHS">Ghanaian Cedi (GHS)</option>
+                <option value="NGN">Nigerian Naira (NGN)</option>
+                <option value="ZAR">South African Rand (ZAR)</option>
+                <option value="KES">Kenyan Shilling (KES)</option>
+                <option value="USD">US Dollar (USD)</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm">
               <span className="font-medium">Payment provider</span>
               <input value={provider} onChange={e => setProvider(e.target.value)} className={inputClass} placeholder="Paystack" />
             </label>
@@ -106,9 +156,10 @@ export function StoreSettings({ onChange, notify, initialInnerTab }: Props) {
           <div className="mt-6 flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
+              disabled={saving || settingsLoading}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-60"
             >
-              <Save className="h-4 w-4" /> Save settings
+              <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save settings"}
             </button>
           </div>
         </form>

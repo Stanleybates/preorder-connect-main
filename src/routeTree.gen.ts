@@ -9,16 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminSignupRouteImport } from './routes/admin/signup'
 import { Route as AdminResetPasswordRouteImport } from './routes/admin/reset-password'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminVerifyUnlockUidb64TokenRouteImport } from './routes/admin/verify-unlock.$uidb64.$token'
 import { Route as AdminResetPasswordUidb64TokenRouteImport } from './routes/admin/reset-password.$uidb64.$token'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +60,12 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminVerifyUnlockUidb64TokenRoute =
+  AdminVerifyUnlockUidb64TokenRouteImport.update({
+    id: '/verify-unlock/$uidb64/$token',
+    path: '/verify-unlock/$uidb64/$token',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminResetPasswordUidb64TokenRoute =
   AdminResetPasswordUidb64TokenRouteImport.update({
     id: '/$uidb64/$token',
@@ -50,68 +75,116 @@ const AdminResetPasswordUidb64TokenRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
   '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
+  '/admin/verify-unlock/$uidb64/$token': typeof AdminVerifyUnlockUidb64TokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
   '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
+  '/admin/verify-unlock/$uidb64/$token': typeof AdminVerifyUnlockUidb64TokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
   '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
+  '/admin/verify-unlock/$uidb64/$token': typeof AdminVerifyUnlockUidb64TokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/admin'
+    | '/login'
+    | '/signup'
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
     | '/admin/reset-password/$uidb64/$token'
+    | '/admin/verify-unlock/$uidb64/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/admin'
+    | '/login'
+    | '/signup'
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
     | '/admin/reset-password/$uidb64/$token'
+    | '/admin/verify-unlock/$uidb64/$token'
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/admin'
+    | '/login'
+    | '/signup'
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
     | '/admin/reset-password/$uidb64/$token'
+    | '/admin/verify-unlock/$uidb64/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -142,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/verify-unlock/$uidb64/$token': {
+      id: '/admin/verify-unlock/$uidb64/$token'
+      path: '/verify-unlock/$uidb64/$token'
+      fullPath: '/admin/verify-unlock/$uidb64/$token'
+      preLoaderRoute: typeof AdminVerifyUnlockUidb64TokenRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/reset-password/$uidb64/$token': {
       id: '/admin/reset-password/$uidb64/$token'
       path: '/$uidb64/$token'
@@ -167,19 +247,24 @@ interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminResetPasswordRoute: typeof AdminResetPasswordRouteWithChildren
   AdminSignupRoute: typeof AdminSignupRoute
+  AdminVerifyUnlockUidb64TokenRoute: typeof AdminVerifyUnlockUidb64TokenRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminResetPasswordRoute: AdminResetPasswordRouteWithChildren,
   AdminSignupRoute: AdminSignupRoute,
+  AdminVerifyUnlockUidb64TokenRoute: AdminVerifyUnlockUidb64TokenRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
+  LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,4 +1,5 @@
-import { SUB_ADMIN_REQUESTS, approveSubAdmin, rejectSubAdmin } from "@/lib/store-data";
+import { useEffect, useState } from "react";
+import { getPendingAdmins, approveAdmin, rejectAdmin, type PendingAdmin } from "@/lib/auth-store";
 
 type Props = {
   onChange: () => void;
@@ -6,62 +7,99 @@ type Props = {
 };
 
 export function SubAdminPanel({ onChange, notify }: Props) {
+  const [admins, setAdmins] = useState<PendingAdmin[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [actingOnId, setActingOnId] = useState<number | null>(null);
+
+  const load = async (silent = false) => {
+    if (!silent) setInitialLoading(true);
+    const data = await getPendingAdmins();
+    setAdmins(data);
+    if (!silent) setInitialLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const onApprove = async (id: number, username: string) => {
+    setActingOnId(id);
+    const result = await approveAdmin(id);
+    if (result.success) {
+      setAdmins(prev => prev.map(a => (a.id === id ? { ...a, status: "approved" } : a)));
+      notify(`Approved ${username}`, "success");
+      onChange();
+    } else {
+      notify(result.message, "error");
+    }
+    setActingOnId(null);
+  };
+
+  const onReject = async (id: number, username: string) => {
+    setActingOnId(id);
+    const result = await rejectAdmin(id);
+    if (result.success) {
+      setAdmins(prev => prev.map(a => (a.id === id ? { ...a, status: "rejected" } : a)));
+      notify(`Rejected ${username}`, "error");
+      onChange();
+    } else {
+      notify(result.message, "error");
+    }
+    setActingOnId(null);
+  };
+
+  if (initialLoading) {
+    return <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Loading…</div>;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-        Placeholder data — this will connect to real sub-admin sign-up requests once wired to the backend.
-      </div>
-
-      {SUB_ADMIN_REQUESTS.length === 0 ? (
+      {admins.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No pending sub-admin requests.
+          No sub-admin requests yet.
         </div>
       ) : (
         <div className="grid gap-3">
-          {SUB_ADMIN_REQUESTS.map(req => (
-            <div key={req.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-              <div>
-                <div className="font-semibold">
-                  {req.username} <span className="text-xs text-muted-foreground">• {req.roleRequested}</span>
+          {admins.map(admin => (
+            <div key={admin.id} className="rounded-2xl border border-border bg-card p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="font-semibold">{admin.username}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {admin.email || "—"} · {new Date(admin.date_joined).toLocaleDateString()}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">{req.email} · {req.date}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`rounded-full px-3 py-1 text-sm ${
-                    req.status === "pending"
-                      ? "bg-yellow-50 text-yellow-800"
-                      : req.status === "approved"
-                      ? "bg-emerald-50 text-emerald-800"
-                      : "bg-red-50 text-red-800"
-                  }`}
-                >
-                  {req.status}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className={`rounded-full px-3 py-1 text-sm ${
+                      admin.status === "pending"
+                        ? "bg-yellow-50 text-yellow-800"
+                        : admin.status === "approved"
+                        ? "bg-emerald-50 text-emerald-800"
+                        : "bg-red-50 text-red-800"
+                    }`}
+                  >
+                    {admin.status}
+                  </div>
+                  {admin.status === "pending" && (
+                    <>
+                      <button
+                        onClick={() => onApprove(admin.id, admin.username)}
+                        disabled={actingOnId === admin.id}
+                        className="rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        {actingOnId === admin.id ? "..." : "Approve"}
+                      </button>
+                      <button
+                        onClick={() => onReject(admin.id, admin.username)}
+                        disabled={actingOnId === admin.id}
+                        className="rounded-2xl bg-red-500 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        {actingOnId === admin.id ? "..." : "Reject"}
+                      </button>
+                    </>
+                  )}
                 </div>
-                {req.status === "pending" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        approveSubAdmin(req.id);
-                        onChange();
-                        notify(`Approved ${req.username}`, "success");
-                      }}
-                      className="rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => {
-                        rejectSubAdmin(req.id);
-                        onChange();
-                        notify(`Rejected ${req.username}`, "error");
-                      }}
-                      className="rounded-2xl bg-red-500 px-3 py-2 text-sm font-semibold text-white"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           ))}

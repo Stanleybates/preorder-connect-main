@@ -1,5 +1,6 @@
 import { ExternalLink, LogOut } from "lucide-react";
 import { STORE } from "@/lib/store-data";
+import { useSiteSettings } from "@/lib/catalog-api";
 
 type Props = {
   username: string;
@@ -9,12 +10,15 @@ type Props = {
 };
 
 export function AdminHeader({ username, profilePhoto, onLogout, onProfileClick }: Props) {
+  const { data: settings } = useSiteSettings();
+  const storeName = settings?.name || STORE.name;
+
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <a href="/admin" className="flex items-center gap-2">
-          <img src="/sg-logo.svg" alt={STORE.name} className="h-8 w-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          <span className="font-display font-bold text-base sm:text-lg">{STORE.name}</span>
+          <img src="/sg-logo.svg" alt={storeName} className="h-8 w-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <span className="font-display font-bold text-base sm:text-lg">{storeName}</span>
           <span className="hidden text-xs font-medium text-muted-foreground sm:inline">Admin</span>
         </a>
 

@@ -47,6 +47,7 @@ function Admin() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const currentUser = getCurrentUser();
+  const isSuperAdmin = currentUser?.role === "super_admin";
 
   useEffect(() => {
     if (!isAuthenticated() && location.pathname === "/admin") {
@@ -85,7 +86,8 @@ function Admin() {
     return null;
   }
 
-  const activeTabInfo = TABS.find(t => t.id === activeTab);
+  const visibleTabs = TABS.filter(tab => (tab.id !== "urm" && tab.id !== "payments") || isSuperAdmin);
+  const activeTabInfo = visibleTabs.find(t => t.id === activeTab);
 
   return (
     <div className="relative min-h-screen bg-hero">
@@ -97,10 +99,10 @@ function Admin() {
       {toast && (
         <div
           role="status"
-          className={`fixed right-4 top-20 z-50 rounded-xl border px-4 py-3 text-sm font-medium shadow-elevated ${
+          className={`fixed right-4 top-20 z-50 rounded-xl border px-4 py-3 text-sm font-semibold shadow-elevated ${
             toast.type === "success"
-              ? "border-success/30 bg-success/10 text-success"
-              : "border-destructive/30 bg-destructive/10 text-destructive"
+              ? "border-success bg-success text-white"
+              : "border-destructive bg-destructive text-white"
           }`}
         >
           {toast.message}
@@ -118,7 +120,7 @@ function Admin() {
 
         {/* Tabs — desktop row */}
         <div className="mb-6 hidden flex-wrap gap-2 border-b border-border md:flex">
-          {TABS.map(tab => (
+          {visibleTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => selectTab(tab.id)}
@@ -148,7 +150,7 @@ function Admin() {
 
           {mobileNavOpen && (
             <div className="absolute left-0 right-0 top-full z-30 mt-2 grid gap-1 rounded-xl border border-border bg-card p-2 shadow-elevated">
-              {TABS.map(tab => (
+              {visibleTabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => selectTab(tab.id)}
@@ -164,13 +166,13 @@ function Admin() {
         </div>
 
         {/* Content */}
-        {activeTab === "overview" && <OverviewPanel />}
-        {activeTab === "products" && <ProductManager onChange={refresh} notify={notify} />}
-        {activeTab === "orders" && <OrdersPanel />}
-        {activeTab === "promotions" && <PromotionsPanel onChange={refresh} notify={notify} />}
+        {activeTab === "overview" && <OverviewPanel isSuperAdmin={isSuperAdmin} />}
+        {activeTab === "products" && <ProductManager onChange={refresh} notify={notify} isSuperAdmin={isSuperAdmin} currentUsername={currentUser.username} />}
+        {activeTab === "orders" && <OrdersPanel notify={notify} />}
+        {activeTab === "promotions" && <PromotionsPanel onChange={refresh} notify={notify} isSuperAdmin={isSuperAdmin} currentUsername={currentUser.username} />}
         {activeTab === "urm" && <SubAdminPanel onChange={refresh} notify={notify} />}
         {activeTab === "payments" && <PaymentsPanel />}
-        {activeTab === "settings" && <StoreSettings onChange={refresh} notify={notify} initialInnerTab={settingsInnerTab} />}
+        {activeTab === "settings" && <StoreSettings onChange={refresh} notify={notify} initialInnerTab={settingsInnerTab} isSuperAdmin={isSuperAdmin} />}
       </div>
       </div>
     </div>

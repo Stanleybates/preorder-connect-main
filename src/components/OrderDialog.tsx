@@ -1,17 +1,90 @@
-import { type ReactNode } from "react";
-import { ArrowRight, Phone, Sparkles } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { ArrowRight, CheckCircle2, Phone, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { STORE, type Product, formatPrice, whatsappLink } from "@/lib/store-data";
+import { verifyPayment, PAYSTACK_PUBLIC_KEY } from "@/lib/payments-api";
+import { recordProductView } from "@/lib/recently-viewed-api";
+
+declare global {
+  interface Window {
+    PaystackPop?: {
+      setup: (options: {
+        key: string;
+        email: string;
+        amount: number;
+        currency?: string;
+        ref: string;
+        callback: (response: { reference: string }) => void;
+        onClose: () => void;
+      }) => { openIframe: () => void };
+    };
+  }
+}
 
 export function OrderDialog({ product, children }: { product: Product; children: ReactNode }) {
+  const [email, setEmail] = useState("");
+
+  const onOpenChange = (open: boolean) => {
+    if (open) {
+      const productIdNum = Number(product.id);
+      if (Number.isFinite(productIdNum)) recordProductView(productIdNum);
+    }
+  };
+  const [paying, setPaying] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [error, setError] = useState("");
+
+  const startPayment = () => {
+    setError("");
+
+    if (!email.trim() || !email.includes("@")) {
+      setError("Enter a valid email to continue.");
+      return;
+    }
+
+    if (!window.PaystackPop) {
+      setError("Payment popup failed to load. Check your connection and try again.");
+      return;
+    }
+
+    setPaying(true);
+    const reference = `${Date.now()}-${product.id}`;
+
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: email.trim(),
+      amount: Math.round(product.price * 100),
+      currency: "GHS",
+      ref: reference,
+      callback: async (response) => {
+        setVerifying(true);
+        const productIdNum = Number(product.id.replace(/[^0-9]/g, ""));
+        const result = await verifyPayment(response.reference, Number.isFinite(productIdNum) ? productIdNum : undefined);
+        setVerifying(false);
+        setPaying(false);
+        if (result.success) {
+          setPaid(true);
+        } else {
+          setError(result.message);
+        }
+      },
+      onClose: () => {
+        setPaying(false);
+      },
+    });
+
+    handler.openIframe();
+  };
+
   return (
-    <Dialog>
+    <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-xl w-[95vw] p-6 overflow-hidden bg-background border border-border shadow-elevated">
         <DialogHeader>
           <DialogTitle className="text-2xl font-display font-bold">Pay with {STORE.payment.provider}</DialogTitle>
           <DialogDescription>
-            Complete payment via Paystack, then confirm your order on WhatsApp. Your item details are ready below.
+            Complete payment via Paystack, then confirm your order on WhatsApp.
           </DialogDescription>
         </DialogHeader>
 
@@ -28,53 +101,69 @@ export function OrderDialog({ product, children }: { product: Product; children:
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground mb-4">
-            <Phone className="w-4 h-4" /> Payment
-          </div>
-          <div className="grid gap-3 text-sm">
-            <div className="rounded-2xl bg-background/80 p-3">
-              <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Provider</div>
-              <div className="mt-1 font-semibold">{STORE.payment.provider}</div>
+        {!paid ? (
+          <div className="mt-6 rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground mb-4">
+              <Phone className="w-4 h-4" /> Payment
             </div>
-            <div className="rounded-2xl bg-background/80 p-3 flex items-center justify-between">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Checkout</div>
-                <div className="mt-1 font-semibold break-all">{STORE.payment.checkoutUrl || "—"}</div>
-              </div>
-              {STORE.payment.checkoutUrl ? (
-                <a
-                  href={`${STORE.payment.checkoutUrl}${STORE.payment.checkoutUrl.includes("?") ? "&" : "?"}product=${product.id}&amount=${product.price}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-4 inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-                >
-                  Pay with {STORE.payment.provider}
-                </a>
-              ) : null}
-            </div>
-            {STORE.payment.note && (
-              <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm text-muted-foreground">
-                {STORE.payment.note}
-              </div>
+
+            <label className="block space-y-2 text-sm mb-4">
+              <span className="font-medium">Your email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={paying || verifying}
+                className="w-full rounded-xl border border-border px-4 py-3 bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </label>
+
+            {error && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
             )}
+
+            <button
+              type="button"
+              onClick={startPayment}
+              disabled={paying || verifying}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-60"
+            >
+              {verifying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying payment...
+                </>
+              ) : paying ? (
+                "Waiting for payment..."
+              ) : (
+                `Pay ${formatPrice(product.price)} with Paystack`
+              )}
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="mt-6 rounded-3xl border border-success/30 bg-success/10 p-5 flex items-center gap-3">
+            <CheckCircle2 className="w-6 h-6 text-success shrink-0" />
+            <p className="text-sm text-success font-medium">
+              Payment successful! Tap below to confirm your order and arrange delivery on WhatsApp.
+            </p>
+          </div>
+        )}
 
-        <div className="mt-6 rounded-3xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 p-5">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            After payment, please send your payment proof and order confirmation to our WhatsApp. Tap the button below to continue the order from your phone.
-          </p>
-        </div>
-
-        <a
-          href={whatsappLink(product)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-primary-foreground shadow-glow hover:shadow-neon transition-all"
-        >
-          Confirm on WhatsApp <ArrowRight className="w-4 h-4" />
-        </a>
+        {paid && (
+          <div className="mt-6 space-y-2">
+            <a
+              href={whatsappLink(product)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-primary-foreground shadow-glow hover:shadow-neon transition-all"
+            >
+              Confirm on WhatsApp (optional) <ArrowRight className="w-4 h-4" />
+            </a>
+            <p className="text-center text-xs text-muted-foreground">
+              Your order is already paid for — this just helps us coordinate delivery faster.
+            </p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

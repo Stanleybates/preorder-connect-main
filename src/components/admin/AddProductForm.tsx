@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { UploadCloud, Plus } from "lucide-react";
-import { CATEGORIES, addProduct } from "@/lib/store-data";
+import { getCategories, createProduct, type Category } from "@/lib/products-api";
 
 type Props = {
   onChange: () => void;
@@ -9,8 +9,9 @@ type Props = {
 };
 
 export function AddProductForm({ onChange, notify, onDone }: Props) {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("iphones");
+  const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [status, setStatus] = useState<"in-stock" | "pre-stock">("in-stock");
   const [eta, setEta] = useState("");
@@ -18,6 +19,15 @@ export function AddProductForm({ onChange, notify, onDone }: Props) {
   const [emoji, setEmoji] = useState("📦");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    getCategories().then(cats => {
+      setCategories(cats);
+      if (cats.length > 0 && !category) setCategory(cats[0].id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!imageFile) {
@@ -33,7 +43,6 @@ export function AddProductForm({ onChange, notify, onDone }: Props) {
 
   const resetForm = () => {
     setName("");
-    setCategory("iphones");
     setPrice("");
     setStatus("in-stock");
     setEta("");
@@ -43,33 +52,35 @@ export function AddProductForm({ onChange, notify, onDone }: Props) {
     setImagePreview("");
   };
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!name.trim() || !price.trim() || !imagePreview) {
-      notify("Please fill in all required fields and upload an image.", "error");
+    if (!name.trim() || !price.trim() || !category) {
+      notify("Please fill in all required fields.", "error");
       return;
     }
-    const hue = CATEGORIES.find(cat => cat.id === category)?.id.length ?? 220;
-    const newProduct = addProduct({
-      id: "",
+
+    setSubmitting(true);
+    const hue = categories.find(c => c.id === category)?.id.length ?? 220;
+    const result = await createProduct({
       name: name.trim(),
       category,
       price: Number(price),
       status,
       eta: status === "pre-stock" ? eta.trim() || "Arrives soon" : undefined,
       emoji: emoji.trim() || "📦",
-      image: imagePreview,
       hue: typeof hue === "number" ? hue : 220,
       tag: tag.trim() || undefined,
+      imageFile,
     });
+    setSubmitting(false);
 
-    if (newProduct) {
-      notify(`Product "${newProduct.name}" added successfully!`, "success");
+    if (result.success) {
+      notify(`Product "${result.product?.name}" added successfully!`, "success");
       resetForm();
       onChange();
       onDone?.();
     } else {
-      notify("Failed to add product. Try again.", "error");
+      notify(result.message, "error");
     }
   };
 
@@ -83,9 +94,6 @@ export function AddProductForm({ onChange, notify, onDone }: Props) {
           <h2 className="text-xl font-semibold">Add New Product</h2>
           <p className="text-sm text-muted-foreground">Upload an image, set price, and choose stock status.</p>
         </div>
-        <div className="rounded-full bg-muted px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          In-memory
-        </div>
       </div>
 
       <form className="grid gap-5" onSubmit={onSubmit}>
@@ -98,7 +106,7 @@ export function AddProductForm({ onChange, notify, onDone }: Props) {
           <label className="space-y-2 text-sm">
             <span className="font-medium">Category</span>
             <select value={category} onChange={e => setCategory(e.target.value)} className={inputClass}>
-              {CATEGORIES.map(cat => (
+              {categories.map(cat => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>
@@ -154,17 +162,18 @@ export function AddProductForm({ onChange, notify, onDone }: Props) {
 
         {imagePreview && (
           <div className="overflow-hidden rounded-3xl border border-border bg-muted">
-            <img src={imagePreview || "/placeholder.svg"} alt="Preview of the product being added" className="w-full object-cover" style={{ aspectRatio: "4 / 3" }} />
+            <img src={imagePreview} alt="Preview of the product being added" className="w-full object-cover" style={{ aspectRatio: "4 / 3" }} />
           </div>
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">Uploaded images appear instantly in the product list.</p>
+          <p className="text-sm text-muted-foreground">Uploaded images are stored on the server.</p>
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
+            disabled={submitting}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
           >
-            <Plus className="h-4 w-4" /> Add product
+            <Plus className="h-4 w-4" /> {submitting ? "Adding..." : "Add product"}
           </button>
         </div>
       </form>

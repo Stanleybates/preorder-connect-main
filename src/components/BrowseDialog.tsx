@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Search, ShoppingBag, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { CATEGORIES, PRODUCTS, formatPrice, type Product } from "@/lib/store-data";
+import { formatPrice, type Product } from "@/lib/store-data";
+import { useProducts, useCategories } from "@/lib/catalog-api";
 import { OrderDialog } from "@/components/OrderDialog";
 import { SmartImage } from "@/components/SmartImage";
 
@@ -10,14 +11,18 @@ export function BrowseDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [cat, setCat] = useState<string>("all");
   const [q, setQ] = useState("");
+  const { data: PRODUCTS, isLoading: productsLoading } = useProducts();
+  const { data: CATEGORIES, isLoading: categoriesLoading } = useCategories();
+  const products = PRODUCTS ?? [];
+  const categories = CATEGORIES ?? [];
 
   const items = useMemo(() => {
-    return PRODUCTS.filter(p => {
+    return products.filter(p => {
       const matchCat = cat === "all" || p.category === cat;
       const matchQ = q.trim() === "" || p.name.toLowerCase().includes(q.toLowerCase());
       return matchCat && matchQ;
     });
-  }, [cat, q]);
+  }, [products, cat, q]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -47,7 +52,7 @@ export function BrowseDialog({ children }: { children: React.ReactNode }) {
           </div>
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             <Chip active={cat === "all"} onClick={() => setCat("all")} label="✨ All" />
-            {CATEGORIES.map(c => (
+            {categoriesLoading ? null : categories.map(c => (
               <Chip key={c.id} active={cat === c.id} onClick={() => setCat(c.id)} label={`${c.emoji} ${c.name}`} />
             ))}
           </div>
@@ -55,7 +60,11 @@ export function BrowseDialog({ children }: { children: React.ReactNode }) {
 
         {/* Grid */}
         <div className="overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" style={{ maxHeight: "60vh" }}>
-          {items.length === 0 ? (
+          {productsLoading ? (
+            <div className="col-span-full flex justify-center py-12">
+              <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            </div>
+          ) : items.length === 0 ? (
             <div className="col-span-full text-center text-muted-foreground py-12">No items match your search.</div>
           ) : (
             items.map(p => <MiniCard key={p.id} p={p} />)

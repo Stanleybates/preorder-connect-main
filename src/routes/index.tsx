@@ -1,12 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowRight, MessageCircle, Package2, Sparkles, Truck, Boxes } from "lucide-react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, MessageCircle, Package2, Sparkles, Truck, Boxes, ShoppingBag, Megaphone } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PromoFlyers } from "@/components/PromoFlyers";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { ProductCard } from "@/components/ProductCard";
 import { BrowseDialog } from "@/components/BrowseDialog";
 import { SmartImage } from "@/components/SmartImage";
 import { Reveal } from "@/components/Reveal";
-import { CATEGORIES, PRODUCTS, STORE } from "@/lib/store-data";
+import { STORE } from "@/lib/store-data";
+import { useProducts, useCategories } from "@/lib/catalog-api";
+import { getCurrentCustomer } from "@/lib/customer-auth-store";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,7 +26,19 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const [activeCat, setActiveCat] = useState<string>("all");
+  const customer = getCurrentCustomer();
+  const search = useSearch({ strict: false }) as { category?: string };
+  const [activeCat, setActiveCat] = useState<string>(search.category || "all");
+
+  useEffect(() => {
+    if (search.category) setActiveCat(search.category);
+  }, [search.category]);
+  const { data: PRODUCTS, isLoading: productsLoading, isError: productsError } = useProducts();
+  const { data: CATEGORIES, isLoading: categoriesLoading } = useCategories();
+
+  const products = PRODUCTS ?? [];
+  const categories = CATEGORIES ?? [];
+  const isLoading = productsLoading || categoriesLoading;
 
   const pickCategory = (id: string) => {
     setActiveCat(id);
@@ -32,22 +49,24 @@ function Index() {
   };
 
   const inStock = useMemo(
-    () => PRODUCTS.filter(p => p.status === "in-stock" && (activeCat === "all" || p.category === activeCat)),
-    [activeCat]
+    () => products.filter(p => p.status === "in-stock" && (activeCat === "all" || p.category === activeCat)),
+    [products, activeCat]
   );
   const preStock = useMemo(
-    () => PRODUCTS.filter(p => p.status === "pre-stock" && (activeCat === "all" || p.category === activeCat)),
-    [activeCat]
+    () => products.filter(p => p.status === "pre-stock" && (activeCat === "all" || p.category === activeCat)),
+    [products, activeCat]
   );
 
-  const heroPhones = PRODUCTS.filter(p => p.category === "iphones").slice(0, 4);
+  const heroPhones = products.filter(p => p.category === "iphones").slice(0, 4);
 
 
   return (
     <div id="top" className="min-h-screen bg-background">
       <SiteHeader />
+      <PromoFlyers />
 
-      {/* HERO */}
+      {/* HERO -- guests only. Returning customers skip straight to shopping. */}
+      {!customer && (
       <section className="relative overflow-hidden bg-hero">
         <div className="absolute inset-0 grid-bg opacity-50" />
         <div className="absolute top-20 -left-20 w-96 h-96 rounded-full bg-primary/30 blur-3xl animate-pulse-glow" />
@@ -79,9 +98,9 @@ function Index() {
               </a>
             </div>
             <div className="flex gap-8 pt-4 reveal is-visible" style={{ animationDelay: "320ms" }}>
-              <Stat n={`${PRODUCTS.filter(p=>p.status==='in-stock').length}+`} label="In stock" />
-              <Stat n={`${PRODUCTS.filter(p=>p.status==='pre-stock').length}+`} label="Pre-order" />
-              <Stat n={`${CATEGORIES.length}`} label="Categories" />
+              <Stat n={`${products.filter(p=>p.status==='in-stock').length}+`} label="In stock" />
+              <Stat n={`${products.filter(p=>p.status==='pre-stock').length}+`} label="Pre-order" />
+              <Stat n={`${categories.length}`} label="Categories" />
             </div>
           </div>
 
@@ -119,6 +138,39 @@ function Index() {
 
         </div>
       </section>
+      )}
+
+      {/* Compact welcome banner -- customers only */}
+      {customer && (
+        <section className="max-w-7xl mx-auto px-6 pt-10 pb-4">
+          <div className="rounded-3xl bg-gradient-to-r from-primary to-accent p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-glow">
+            <div className="flex items-center gap-3 text-primary-foreground">
+              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-lg font-display font-bold">Welcome back, {customer.name.split(" ")[0]}</p>
+                <p className="text-sm text-primary-foreground/80">Pick up where you left off.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-fit">
+              <a
+                href="#in-stock"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/15 px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-white/25 transition-colors"
+              >
+                Shop now <ArrowRight className="w-4 h-4" />
+              </a>
+              <Link
+                to="/promos"
+                aria-label="View promotions"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white/15 text-primary-foreground hover:bg-white/25 transition-colors"
+              >
+                <Megaphone className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CATEGORIES */}
       <section id="categories" className="max-w-7xl mx-auto px-6 py-20">
@@ -133,7 +185,11 @@ function Index() {
           <Reveal variant="scale" delay={0}>
             <CategoryPill id="all" name="All" emoji="✨" active={activeCat==="all"} onClick={() => pickCategory("all")} />
           </Reveal>
-          {CATEGORIES.map((c, i) => (
+          {categoriesLoading ? (
+            <div className="col-span-full flex justify-center py-6">
+              <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            </div>
+          ) : categories.map((c, i) => (
             <Reveal key={c.id} variant="scale" delay={(i + 1) * 60}>
               <CategoryPill
                 id={c.id}
@@ -148,6 +204,16 @@ function Index() {
 
       </section>
 
+      {isLoading ? (
+        <section className="max-w-7xl mx-auto px-6 py-24 flex justify-center">
+          <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        </section>
+      ) : productsError ? (
+        <section className="max-w-7xl mx-auto px-6 py-24 text-center text-muted-foreground">
+          Couldn't load products right now. Pull to refresh or check back shortly.
+        </section>
+      ) : (
+      <>
       {/* IN STOCK */}
       <section id="in-stock" className="max-w-7xl mx-auto px-6 py-12">
         <Reveal>
@@ -194,7 +260,12 @@ function Index() {
         )}
       </section>
 
-      {/* HOW IT WORKS */}
+      </>
+      )}
+
+      {/* HOW IT WORKS + CTA -- guests only, standard practice: returning customers don't need onboarding content repeated */}
+      {!customer && (
+      <>
       <section id="how" className="max-w-7xl mx-auto px-6 py-24">
         <Reveal>
           <SectionHeader
@@ -227,17 +298,17 @@ function Index() {
             <p className="text-muted-foreground">
               Tell us what you need on WhatsApp. We source imports from across the globe.
             </p>
-            <a
-              href={`https://wa.me/${STORE.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent("Hi! I'd like to request a custom import.")}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <WhatsAppButton
+              message="Hi! I'd like to request a custom import."
               className="inline-flex items-center gap-2 px-7 py-4 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-glow hover:shadow-neon transition-shadow"
             >
               <MessageCircle className="w-5 h-5" /> Request on WhatsApp
-            </a>
+            </WhatsAppButton>
           </div>
         </Reveal>
       </section>
+      </>
+      )}
 
       <footer className="border-t border-border">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">

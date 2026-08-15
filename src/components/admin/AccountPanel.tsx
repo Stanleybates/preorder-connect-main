@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Camera, KeyRound } from "lucide-react";
-import { changePassword, getCurrentUser, getProfilePhoto, setProfilePhoto } from "@/lib/auth-store";
+import { Camera, KeyRound, UserCog } from "lucide-react";
+import { changePassword, changeUsername, getCurrentUser, getProfilePhoto, setProfilePhoto } from "@/lib/auth-store";
 
 type Props = {
   notify: (message: string, type: "success" | "error") => void;
@@ -13,7 +13,9 @@ export function AccountPanel({ notify, onChange }: Props) {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingPassword, setLoadingPassword] = useState(false);
+  const [usernameInput, setUsernameInput] = useState(currentUser?.username ?? "");
+  const [loadingUsername, setLoadingUsername] = useState(false);
 
   useEffect(() => {
     setPhotoPreviewState(getProfilePhoto());
@@ -33,6 +35,26 @@ export function AccountPanel({ notify, onChange }: Props) {
     reader.readAsDataURL(file);
   };
 
+  const onSubmitUsername = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (usernameInput.trim() === currentUser?.username) {
+      notify("That's already your username", "error");
+      return;
+    }
+
+    setLoadingUsername(true);
+    const result = await changeUsername(usernameInput.trim());
+    setLoadingUsername(false);
+
+    if (result.success) {
+      notify(result.message, "success");
+      onChange?.();
+    } else {
+      notify(result.message, "error");
+    }
+  };
+
   const onSubmitPassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -41,9 +63,9 @@ export function AccountPanel({ notify, onChange }: Props) {
       return;
     }
 
-    setLoading(true);
+    setLoadingPassword(true);
     const result = await changePassword(oldPassword, newPassword);
-    setLoading(false);
+    setLoadingPassword(false);
 
     if (result.success) {
       notify(result.message, "success");
@@ -85,9 +107,33 @@ export function AccountPanel({ notify, onChange }: Props) {
 
       <div className="rounded-3xl border border-border bg-card p-6 shadow-3d">
         <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+          <UserCog className="h-5 w-5" /> Username
+        </h2>
+        <form className="grid gap-4" onSubmit={onSubmitUsername}>
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">Username</span>
+            <input
+              value={usernameInput}
+              onChange={e => setUsernameInput(e.target.value)}
+              className={inputClass}
+              autoComplete="username"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={loadingUsername || !usernameInput.trim()}
+            className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
+          >
+            {loadingUsername ? "Saving..." : "Update Username"}
+          </button>
+        </form>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-3d md:col-span-2">
+        <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
           <KeyRound className="h-5 w-5" /> Change Password
         </h2>
-        <form className="grid gap-4" onSubmit={onSubmitPassword}>
+        <form className="grid gap-4 md:grid-cols-3" onSubmit={onSubmitPassword}>
           <label className="space-y-1.5 text-sm">
             <span className="font-medium">Current password</span>
             <input
@@ -120,10 +166,10 @@ export function AccountPanel({ notify, onChange }: Props) {
           </label>
           <button
             type="submit"
-            disabled={loading || !oldPassword.trim() || !newPassword.trim() || !confirmPassword.trim()}
-            className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
+            disabled={loadingPassword || !oldPassword.trim() || !newPassword.trim() || !confirmPassword.trim()}
+            className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50 md:col-span-3"
           >
-            {loading ? "Updating..." : "Update Password"}
+            {loadingPassword ? "Updating..." : "Update Password"}
           </button>
         </form>
       </div>

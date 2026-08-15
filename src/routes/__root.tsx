@@ -7,10 +7,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { restoreCustomerSession } from "../lib/customer-auth-store";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { BottomNav } from "../components/BottomNav";
+import { WhatsAppFab } from "../components/WhatsAppFab";
 
 function NotFoundComponent() {
   return (
@@ -104,6 +107,7 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script src="https://js.paystack.co/v1/inline.js"></script>
       </head>
       <body>
         {children}
@@ -115,11 +119,32 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdminRoute = pathname.startsWith("/admin");
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    restoreCustomerSession().finally(() => setSessionChecked(true));
+  }, []);
+
+  if (!sessionChecked) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        </div>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className={isAdminRoute ? "" : "pb-16 md:pb-0"}>
+        <Outlet />
+      </div>
+      {!isAdminRoute && <BottomNav />}
+      {!isAdminRoute && <WhatsAppFab />}
     </QueryClientProvider>
   );
 }

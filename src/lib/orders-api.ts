@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL } from "./api-config";
 import { getCustomerAccessToken } from "./customer-auth-store";
+import { getAccessToken } from "./auth-store";
 
 export type OrderItem = {
   id: number;
@@ -42,4 +43,33 @@ export function useMyOrders() {
     queryFn: fetchMyOrders,
     staleTime: 30_000,
   });
+}
+
+// ---- Admin: all orders + status updates (uses admin auth token, not customer) ----
+
+function adminAuthHeaders(): HeadersInit {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+}
+
+export async function getOrders(): Promise<Order[]> {
+  const res = await fetch(`${API_BASE_URL}/orders/`, { headers: adminAuthHeaders() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function updateOrderStatus(
+  id: number,
+  status: Order["status"]
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/orders/${id}/status/`, {
+    method: "POST",
+    headers: adminAuthHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    return { success: false, message: body?.detail || "Failed to update order status" };
+  }
+  return { success: true, message: "Order status updated" };
 }

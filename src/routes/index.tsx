@@ -1,6 +1,6 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, MessageCircle, Package2, Sparkles, Truck, Boxes, ShoppingBag, Megaphone } from "lucide-react";
+import { ArrowRight, MessageCircle, Package2, Sparkles, Truck, Boxes, ShoppingBag, Megaphone, Sparkle, Clock3 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PromoFlyers } from "@/components/PromoFlyers";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -9,9 +9,12 @@ import { BrowseDialog } from "@/components/BrowseDialog";
 import { SmartImage } from "@/components/SmartImage";
 import { Reveal } from "@/components/Reveal";
 import { STORE } from "@/lib/store-data";
+import type { Product } from "@/lib/store-data";
 import { useProducts, useCategories } from "@/lib/catalog-api";
 import { getCurrentCustomer } from "@/lib/customer-auth-store";
-import { Link } from "@tanstack/react-router";
+import { useRecentlyViewed } from "@/lib/recently-viewed-api";
+import { useWishlist } from "@/lib/wishlist-api";
+import { useMyOrders } from "@/lib/orders-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,37 +28,89 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+// Simple weighted category-affinity scoring -- no ML needed at this scale.
+// A past purchase signals intent far more strongly than a passing view.
+const WEIGHT_ORDER = 3;
+const WEIGHT_WISHLIST = 2;
+const WEIGHT_VIEWED = 1;
+
+function sortByAffinity(products: Product[], scores: Record<string, number>): Product[] {
+  return products
+    .map((p, index) => ({ p, index, score: scores[p.category] ?? 0 }))
+    .sort((a, b) => (b.score - a.score) || (a.index - b.index))
+    .map((entry) => entry.p);
+}
+
 function Index() {
   const customer = getCurrentCustomer();
   const search = useSearch({ strict: false }) as { category?: string };
   const [activeCat, setActiveCat] = useState<string>(search.category || "all");
+  const [sortMode, setSortMode] = useState<"for-you" | "newest">("newest");
 
   useEffect(() => {
     if (search.category) setActiveCat(search.category);
   }, [search.category]);
+
   const { data: PRODUCTS, isLoading: productsLoading, isError: productsError } = useProducts();
   const { data: CATEGORIES, isLoading: categoriesLoading } = useCategories();
+  const { data: recentlyViewed } = useRecentlyViewed();
+  const { data: wishlist } = useWishlist();
+  const { data: orders } = useMyOrders();
 
   const products = PRODUCTS ?? [];
   const categories = CATEGORIES ?? [];
   const isLoading = productsLoading || categoriesLoading;
 
+  const categoryScores = useMemo(() => {
+    if (!customer) return {};
+    const categoryById = new Map(products.map((p) => [Number(p.id), p.category]));
+    const scores: Record<string, number> = {};
+
+    const add = (productId: number | null | undefined, weight: number) => {
+      if (!productId) return;
+      const category = categoryById.get(productId);
+      if (!category) return;
+      scores[category] = (scores[category] ?? 0) + weight;
+    };
+
+    (orders ?? []).forEach((order) => {
+      order.items.forEach((item) => add(item.product, WEIGHT_ORDER));
+    });
+    (wishlist ?? []).forEach((item) => add(item.product, WEIGHT_WISHLIST));
+    (recentlyViewed ?? []).forEach((item) => add(item.product, WEIGHT_VIEWED));
+
+    return scores;
+  }, [customer, products, orders, wishlist, recentlyViewed]);
+
+  const hasSignal = Object.keys(categoryScores).length > 0;
+
+  // Default to personalized ordering once there's real signal to use.
+  useEffect(() => {
+    if (hasSignal) setSortMode("for-you");
+  }, [hasSignal]);
+
   const pickCategory = (id: string) => {
     setActiveCat(id);
-    // jump to inventory after filtering
     setTimeout(() => {
       document.getElementById("in-stock")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
   };
 
-  const inStock = useMemo(
-    () => products.filter(p => p.status === "in-stock" && (activeCat === "all" || p.category === activeCat)),
-    [products, activeCat]
-  );
-  const preStock = useMemo(
-    () => products.filter(p => p.status === "pre-stock" && (activeCat === "all" || p.category === activeCat)),
-    [products, activeCat]
-  );
+  const inStock = useMemo(() => {
+    const filtered = products.filter(p => p.status === "in-stock" && (activeCat === "all" || p.category === activeCat));
+    if (activeCat === "all" && sortMode === "for-you" && hasSignal) {
+      return sortByAffinity(filtered, categoryScores);
+    }
+    return filtered;
+  }, [products, activeCat, sortMode, hasSignal, categoryScores]);
+
+  const preStock = useMemo(() => {
+    const filtered = products.filter(p => p.status === "pre-stock" && (activeCat === "all" || p.category === activeCat));
+    if (activeCat === "all" && sortMode === "for-you" && hasSignal) {
+      return sortByAffinity(filtered, categoryScores);
+    }
+    return filtered;
+  }, [products, activeCat, sortMode, hasSignal, categoryScores]);
 
   const heroPhones = products.filter(p => p.category === "iphones").slice(0, 4);
 
@@ -224,6 +279,34 @@ function Index() {
             accent="success"
           />
         </Reveal>
+
+        {customer && activeCat === "all" && hasSignal && (
+          <div className="flex justify-center gap-2 mt-6">
+            <button
+              type="button"
+              onClick={() => setSortMode("for-you")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide border transition-colors ${
+                sortMode === "for-you"
+                  ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-glow"
+                  : "bg-background border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sparkle className="w-3.5 h-3.5" /> For You
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("newest")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide border transition-colors ${
+                sortMode === "newest"
+                  ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-glow"
+                  : "bg-background border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Clock3 className="w-3.5 h-3.5" /> Newest
+            </button>
+          </div>
+        )}
+
         {inStock.length === 0 ? (
           <EmptyState text="No in-stock items in this category yet." />
         ) : (
@@ -328,9 +411,6 @@ function Stat({ n, label }: { n: string; label: string }) {
     </div>
   );
 }
-
-
-
 
 function CategoryPill({ name, emoji, active, onClick }: { id: string; name: string; emoji: string; active: boolean; onClick: () => void }) {
   return (

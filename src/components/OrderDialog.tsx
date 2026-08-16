@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { STORE, type Product, formatPrice, whatsappLink } from "@/lib/store-data";
 import { verifyPayment, PAYSTACK_PUBLIC_KEY } from "@/lib/payments-api";
 import { recordProductView } from "@/lib/recently-viewed-api";
+import { useAlsoBought, useSimilarProducts } from "@/lib/catalog-api";
+import { SmartImage } from "@/components/SmartImage";
 
 declare global {
   interface Window {
@@ -21,12 +23,14 @@ declare global {
   }
 }
 
-export function OrderDialog({ product, children }: { product: Product; children: ReactNode }) {
+export function OrderDialog({ product: initialProduct, children }: { product: Product; children: ReactNode }) {
+  const [product, setProduct] = useState(initialProduct);
   const [email, setEmail] = useState("");
 
   const onOpenChange = (open: boolean) => {
     if (open) {
-      const productIdNum = Number(product.id);
+      setProduct(initialProduct);
+      const productIdNum = Number(initialProduct.id);
       if (Number.isFinite(productIdNum)) recordProductView(productIdNum);
     }
   };
@@ -34,6 +38,20 @@ export function OrderDialog({ product, children }: { product: Product; children:
   const [verifying, setVerifying] = useState(false);
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState("");
+
+  const productIdNum = Number(product.id);
+  const { data: alsoBought } = useAlsoBought(productIdNum);
+  const { data: similar } = useSimilarProducts(productIdNum);
+  const recommendations = (alsoBought && alsoBought.length > 0 ? alsoBought : similar) ?? [];
+
+  const onPickRecommendation = (p: Product) => {
+    setProduct(p);
+    setEmail("");
+    setPaid(false);
+    setError("");
+    const idNum = Number(p.id);
+    if (Number.isFinite(idNum)) recordProductView(idNum);
+  };
 
   const startPayment = () => {
     setError("");
@@ -59,8 +77,8 @@ export function OrderDialog({ product, children }: { product: Product; children:
       ref: reference,
       callback: async (response) => {
         setVerifying(true);
-        const productIdNum = Number(product.id.replace(/[^0-9]/g, ""));
-        const result = await verifyPayment(response.reference, Number.isFinite(productIdNum) ? productIdNum : undefined);
+        const productIdForVerify = Number(product.id.replace(/[^0-9]/g, ""));
+        const result = await verifyPayment(response.reference, Number.isFinite(productIdForVerify) ? productIdForVerify : undefined);
         setVerifying(false);
         setPaying(false);
         if (result.success) {
@@ -80,7 +98,7 @@ export function OrderDialog({ product, children }: { product: Product; children:
   return (
     <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-xl w-[95vw] p-6 overflow-hidden bg-background border border-border shadow-elevated">
+      <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-6 bg-background border border-border shadow-elevated">
         <DialogHeader>
           <DialogTitle className="text-2xl font-display font-bold">Pay with {STORE.payment.provider}</DialogTitle>
           <DialogDescription>
@@ -162,6 +180,32 @@ export function OrderDialog({ product, children }: { product: Product; children:
             <p className="text-center text-xs text-muted-foreground">
               Your order is already paid for — this just helps us coordinate delivery faster.
             </p>
+          </div>
+        )}
+
+        {!paid && recommendations.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3">
+              {alsoBought && alsoBought.length > 0 ? "Frequently bought together" : "You might also like"}
+            </p>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+              {recommendations.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onPickRecommendation(p)}
+                  className="shrink-0 w-28 text-left rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 transition-colors"
+                >
+                  <div className="aspect-square bg-muted overflow-hidden">
+                    <SmartImage src={p.image} alt={p.name} emoji={p.emoji} hue={p.hue} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-2">
+                    <p className="text-[11px] font-semibold line-clamp-2 leading-tight min-h-[2rem]">{p.name}</p>
+                    <p className="text-xs font-display font-bold text-gradient mt-1">{formatPrice(p.price)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </DialogContent>

@@ -3,17 +3,17 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   getCurrentCustomer,
   restoreCustomerSession,
-  getSavedItems,
   changeCustomerPassword,
   updateCustomerProfileMultipart,
   logoutCustomer,
   type Customer,
 } from "@/lib/customer-auth-store";
+import { useWishlist, useRemoveFromWishlist } from "@/lib/wishlist-api";
 import {
   Package, Heart, Lock, User, MapPin, Camera, ClipboardList,
   History, Bell, ShieldCheck, LogOut, ChevronRight,
 } from "lucide-react";
-import { PRODUCTS, type Product, formatPrice } from "@/lib/store-data";
+import { formatPrice } from "@/lib/store-data";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -45,6 +45,8 @@ function Account() {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(getCurrentCustomer());
   const [checkingSession, setCheckingSession] = useState(!customer);
+  const { data: wishlistItems } = useWishlist();
+  const removeFromWishlist = useRemoveFromWishlist();
 
   useEffect(() => {
     if (customer) return;
@@ -57,8 +59,6 @@ function Account() {
       setCheckingSession(false);
     });
   }, [customer, navigate]);
-
-  const savedItems = getSavedItems();
 
   // Profile fields
   const [name, setName] = useState("");
@@ -100,8 +100,6 @@ function Account() {
   if (!customer) {
     return null;
   }
-
-  const savedProducts: Product[] = PRODUCTS.filter((product) => savedItems.includes(product.id));
 
   const onAvatarChange = (file: File | null) => {
     setAvatarFile(file);
@@ -279,19 +277,26 @@ function Account() {
                 </div>
                 <Heart className="w-8 h-8 text-pink-500" />
               </div>
-              {savedProducts.length === 0 ? (
+              {!wishlistItems || wishlistItems.length === 0 ? (
                 <div className="mt-8 rounded-3xl border border-dashed border-border/70 bg-background/80 p-8 text-center text-sm text-muted-foreground">
-                  You haven't saved any items yet. Tap a product to save it for later.
+                  You haven't saved any items yet. Tap the heart on a product to save it for later.
                 </div>
               ) : (
                 <div className="mt-8 grid gap-4">
-                  {savedProducts.map((product) => (
-                    <div key={product.id} className="rounded-3xl border border-border bg-background p-4 flex items-center justify-between gap-4">
+                  {wishlistItems.map((item) => (
+                    <div key={item.id} className="rounded-3xl border border-border bg-background p-4 flex items-center justify-between gap-4">
                       <div>
-                        <p className="font-semibold">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">{formatPrice(product.price)}</p>
+                        <p className="font-semibold">{item.product_detail.name}</p>
+                        <p className="text-sm text-muted-foreground">{formatPrice(Number(item.product_detail.price))}</p>
                       </div>
-                      <span className="rounded-2xl bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">Saved</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFromWishlist.mutate(item.product)}
+                        disabled={removeFromWishlist.isPending}
+                        className="rounded-2xl bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-60"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
                 </div>

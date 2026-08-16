@@ -9,25 +9,60 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as PromosRouteImport } from './routes/promos'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminSignupRouteImport } from './routes/admin/signup'
 import { Route as AdminResetPasswordRouteImport } from './routes/admin/reset-password'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AccountRecentlyViewedRouteImport } from './routes/account.recently-viewed'
+import { Route as AccountOrdersRouteImport } from './routes/account.orders'
+import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
+import { Route as AccountCloseRouteImport } from './routes/account.close'
+import { Route as ResetPasswordUidb64TokenRouteImport } from './routes/reset-password.$uidb64.$token'
 import { Route as AdminVerifyUnlockUidb64TokenRouteImport } from './routes/admin/verify-unlock.$uidb64.$token'
 import { Route as AdminResetPasswordUidb64TokenRouteImport } from './routes/admin/reset-password.$uidb64.$token'
 
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PromosRoute = PromosRouteImport.update({
+  id: '/promos',
+  path: '/promos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesRoute = CategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -60,6 +95,32 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AccountRecentlyViewedRoute = AccountRecentlyViewedRouteImport.update({
+  id: '/recently-viewed',
+  path: '/recently-viewed',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountOrdersRoute = AccountOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountNotificationsRoute = AccountNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountCloseRoute = AccountCloseRouteImport.update({
+  id: '/close',
+  path: '/close',
+  getParentRoute: () => AccountRoute,
+} as any)
+const ResetPasswordUidb64TokenRoute =
+  ResetPasswordUidb64TokenRouteImport.update({
+    id: '/reset-password/$uidb64/$token',
+    path: '/reset-password/$uidb64/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminVerifyUnlockUidb64TokenRoute =
   AdminVerifyUnlockUidb64TokenRouteImport.update({
     id: '/verify-unlock/$uidb64/$token',
@@ -75,38 +136,68 @@ const AdminResetPasswordUidb64TokenRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/categories': typeof CategoriesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/promos': typeof PromosRoute
   '/signup': typeof SignupRoute
+  '/wishlist': typeof WishlistRoute
+  '/account/close': typeof AccountCloseRoute
+  '/account/notifications': typeof AccountNotificationsRoute
+  '/account/orders': typeof AccountOrdersRoute
+  '/account/recently-viewed': typeof AccountRecentlyViewedRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
+  '/reset-password/$uidb64/$token': typeof ResetPasswordUidb64TokenRoute
   '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
   '/admin/verify-unlock/$uidb64/$token': typeof AdminVerifyUnlockUidb64TokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/categories': typeof CategoriesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/promos': typeof PromosRoute
   '/signup': typeof SignupRoute
+  '/wishlist': typeof WishlistRoute
+  '/account/close': typeof AccountCloseRoute
+  '/account/notifications': typeof AccountNotificationsRoute
+  '/account/orders': typeof AccountOrdersRoute
+  '/account/recently-viewed': typeof AccountRecentlyViewedRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
+  '/reset-password/$uidb64/$token': typeof ResetPasswordUidb64TokenRoute
   '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
   '/admin/verify-unlock/$uidb64/$token': typeof AdminVerifyUnlockUidb64TokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/categories': typeof CategoriesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/promos': typeof PromosRoute
   '/signup': typeof SignupRoute
+  '/wishlist': typeof WishlistRoute
+  '/account/close': typeof AccountCloseRoute
+  '/account/notifications': typeof AccountNotificationsRoute
+  '/account/orders': typeof AccountOrdersRoute
+  '/account/recently-viewed': typeof AccountRecentlyViewedRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRouteWithChildren
   '/admin/signup': typeof AdminSignupRoute
+  '/reset-password/$uidb64/$token': typeof ResetPasswordUidb64TokenRoute
   '/admin/reset-password/$uidb64/$token': typeof AdminResetPasswordUidb64TokenRoute
   '/admin/verify-unlock/$uidb64/$token': typeof AdminVerifyUnlockUidb64TokenRoute
 }
@@ -116,11 +207,21 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/categories'
+    | '/forgot-password'
     | '/login'
+    | '/privacy-policy'
+    | '/promos'
     | '/signup'
+    | '/wishlist'
+    | '/account/close'
+    | '/account/notifications'
+    | '/account/orders'
+    | '/account/recently-viewed'
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
+    | '/reset-password/$uidb64/$token'
     | '/admin/reset-password/$uidb64/$token'
     | '/admin/verify-unlock/$uidb64/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -128,11 +229,21 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/categories'
+    | '/forgot-password'
     | '/login'
+    | '/privacy-policy'
+    | '/promos'
     | '/signup'
+    | '/wishlist'
+    | '/account/close'
+    | '/account/notifications'
+    | '/account/orders'
+    | '/account/recently-viewed'
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
+    | '/reset-password/$uidb64/$token'
     | '/admin/reset-password/$uidb64/$token'
     | '/admin/verify-unlock/$uidb64/$token'
   id:
@@ -140,25 +251,48 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/categories'
+    | '/forgot-password'
     | '/login'
+    | '/privacy-policy'
+    | '/promos'
     | '/signup'
+    | '/wishlist'
+    | '/account/close'
+    | '/account/notifications'
+    | '/account/orders'
+    | '/account/recently-viewed'
     | '/admin/login'
     | '/admin/reset-password'
     | '/admin/signup'
+    | '/reset-password/$uidb64/$token'
     | '/admin/reset-password/$uidb64/$token'
     | '/admin/verify-unlock/$uidb64/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AccountRoute: typeof AccountRoute
+  AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  CategoriesRoute: typeof CategoriesRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  PromosRoute: typeof PromosRoute
   SignupRoute: typeof SignupRoute
+  WishlistRoute: typeof WishlistRoute
+  ResetPasswordUidb64TokenRoute: typeof ResetPasswordUidb64TokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -166,11 +300,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/promos': {
+      id: '/promos'
+      path: '/promos'
+      fullPath: '/promos'
+      preLoaderRoute: typeof PromosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories': {
+      id: '/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -215,6 +377,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/account/recently-viewed': {
+      id: '/account/recently-viewed'
+      path: '/recently-viewed'
+      fullPath: '/account/recently-viewed'
+      preLoaderRoute: typeof AccountRecentlyViewedRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/orders': {
+      id: '/account/orders'
+      path: '/orders'
+      fullPath: '/account/orders'
+      preLoaderRoute: typeof AccountOrdersRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/notifications': {
+      id: '/account/notifications'
+      path: '/notifications'
+      fullPath: '/account/notifications'
+      preLoaderRoute: typeof AccountNotificationsRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/close': {
+      id: '/account/close'
+      path: '/close'
+      fullPath: '/account/close'
+      preLoaderRoute: typeof AccountCloseRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/reset-password/$uidb64/$token': {
+      id: '/reset-password/$uidb64/$token'
+      path: '/reset-password/$uidb64/$token'
+      fullPath: '/reset-password/$uidb64/$token'
+      preLoaderRoute: typeof ResetPasswordUidb64TokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/verify-unlock/$uidb64/$token': {
       id: '/admin/verify-unlock/$uidb64/$token'
       path: '/verify-unlock/$uidb64/$token'
@@ -231,6 +428,23 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AccountRouteChildren {
+  AccountCloseRoute: typeof AccountCloseRoute
+  AccountNotificationsRoute: typeof AccountNotificationsRoute
+  AccountOrdersRoute: typeof AccountOrdersRoute
+  AccountRecentlyViewedRoute: typeof AccountRecentlyViewedRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountCloseRoute: AccountCloseRoute,
+  AccountNotificationsRoute: AccountNotificationsRoute,
+  AccountOrdersRoute: AccountOrdersRoute,
+  AccountRecentlyViewedRoute: AccountRecentlyViewedRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
 
 interface AdminResetPasswordRouteChildren {
   AdminResetPasswordUidb64TokenRoute: typeof AdminResetPasswordUidb64TokenRoute
@@ -261,10 +475,16 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AccountRoute: AccountRoute,
+  AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  CategoriesRoute: CategoriesRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
+  PromosRoute: PromosRoute,
   SignupRoute: SignupRoute,
+  WishlistRoute: WishlistRoute,
+  ResetPasswordUidb64TokenRoute: ResetPasswordUidb64TokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

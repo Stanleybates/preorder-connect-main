@@ -71,6 +71,10 @@ export function useProducts() {
   });
 }
 
+export async function getCategories(): Promise<Category[]> {
+  return fetchCategories();
+}
+
 export function useCategories() {
   return useQuery({
     queryKey: ["catalog-categories"],
@@ -122,4 +126,36 @@ export async function updateSiteSettingsApi(
     throw new Error(data?.detail || "Failed to update site settings");
   }
   return res.json();
+}
+
+async function fetchAlsoBought(productId: number): Promise<Product[]> {
+  const res = await fetch(`${API_BASE_URL}/products/${productId}/also-bought/`);
+  if (!res.ok) return [];
+  const data: RawProduct[] = await res.json();
+  return data.map(transformProduct);
+}
+
+async function fetchSimilarProducts(productId: number): Promise<Product[]> {
+  const res = await fetch(`${API_BASE_URL}/products/${productId}/similar/`);
+  if (!res.ok) return [];
+  const data: RawProduct[] = await res.json();
+  return data.map(transformProduct);
+}
+
+export function useAlsoBought(productId: number) {
+  return useQuery({
+    queryKey: ["also-bought", productId],
+    queryFn: () => fetchAlsoBought(productId),
+    enabled: Number.isFinite(productId),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSimilarProducts(productId: number) {
+  return useQuery({
+    queryKey: ["similar-products", productId],
+    queryFn: () => fetchSimilarProducts(productId),
+    enabled: Number.isFinite(productId),
+    staleTime: 5 * 60_000,
+  });
 }

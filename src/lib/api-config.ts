@@ -1,1 +1,7 @@
-export const API_BASE_URL = "http://localhost:8001/api/auth";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+if (!API_BASE_URL) {
+  throw new Error("VITE_API_BASE_URL is not configured");
+}
+
+export { API_BASE_URL };

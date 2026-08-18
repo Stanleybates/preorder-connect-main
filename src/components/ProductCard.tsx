@@ -1,171 +1,298 @@
-import { Clock, Zap, ShoppingCart, Check, Heart } from "lucide-react";
+import {
+  Check,
+  Clock3,
+  Heart,
+  ShoppingCart,
+  Sparkles,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { formatPrice, whatsappLink, type Product } from "@/lib/store-data";
-import { isCustomerAuthenticated } from "@/lib/customer-auth-store";
+import { useState, type MouseEvent } from "react";
+
+import {
+  formatPrice,
+  type Product,
+} from "@/lib/store-data";
+
+import {
+  isCustomerAuthenticated,
+} from "@/lib/customer-auth-store";
+
 import { useAddToCart } from "@/lib/cart-api";
 import { useToggleWishlist } from "@/lib/wishlist-api";
 import { OrderDialog } from "@/components/OrderDialog";
 import { SmartImage } from "@/components/SmartImage";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+}: {
+  product: Product;
+}) {
   const navigate = useNavigate();
-  const authenticated = isCustomerAuthenticated();
+
+  const authenticated =
+    isCustomerAuthenticated();
+
   const productIdNum = Number(product.id);
-  const { isSaved, toggle: toggleWishlist, isPending: wishlistPending } = useToggleWishlist(productIdNum);
-  const isInStock = product.status === "in-stock";
-  const accentBg = isInStock ? "group-hover:bg-primary" : "group-hover:bg-warning";
-  const labelHover = isInStock ? "group-hover:text-primary-foreground/70" : "group-hover:text-white/80";
-  const priceHover = isInStock ? "group-hover:text-primary-foreground" : "group-hover:text-white";
+
+  const {
+    isSaved,
+    toggle: toggleWishlist,
+    isPending: wishlistPending,
+  } = useToggleWishlist(productIdNum);
 
   const addToCart = useAddToCart();
-  const [justAdded, setJustAdded] = useState(false);
+
+  const [justAdded, setJustAdded] =
+    useState(false);
+
+  const isInStock =
+    product.status === "in-stock";
+
+  /*
+   * Do not show a second badge when the
+   * product tag repeats the availability.
+   *
+   * Example:
+   * PRE-ORDER + PREORDER
+   */
+  const normalizedTag =
+    product.tag?.toLowerCase().trim();
+
+  const showTag =
+    Boolean(product.tag) &&
+    normalizedTag !== "preorder" &&
+    normalizedTag !== "pre-order" &&
+    normalizedTag !== "in stock" &&
+    normalizedTag !== "in-stock";
 
   const onAddToCart = () => {
     if (!authenticated) {
-      navigate({ to: "/login" });
+      navigate({
+        to: "/login",
+      });
+
       return;
     }
-    if (!Number.isFinite(productIdNum)) return;
+
+    if (!Number.isFinite(productIdNum)) {
+      return;
+    }
+
     addToCart.mutate(
-      { productId: productIdNum },
+      {
+        productId: productIdNum,
+      },
       {
         onSuccess: () => {
           setJustAdded(true);
-          setTimeout(() => setJustAdded(false), 1500);
+
+          setTimeout(() => {
+            setJustAdded(false);
+          }, 1500);
         },
-      }
+      },
     );
   };
 
-  const onToggleWishlist = (event: React.MouseEvent) => {
+  const onToggleWishlist = (
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
     event.stopPropagation();
+
     if (!authenticated) {
-      navigate({ to: "/login" });
+      navigate({
+        to: "/login",
+      });
+
       return;
     }
+
     toggleWishlist();
   };
 
+  const goToLogin = () => {
+    navigate({
+      to: "/login",
+    });
+  };
+
   return (
-    <div className="group bg-card rounded-3xl overflow-hidden border border-border/70 shadow-[0_4px_20px_-8px_rgb(0_0_0_/_0.08)] hover:shadow-[0_24px_60px_-20px_oklch(0.55_0.25_295_/_0.25)] hover:border-primary/30 transition-all duration-500 flex flex-col">
-      {/* Image */}
+    <article className="group h-full overflow-hidden rounded-3xl border border-border/70 bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_20px_50px_-24px_rgba(0,0,0,0.28)]">
+      {/* PRODUCT IMAGE */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <SmartImage
           src={product.image}
           alt={product.name}
           emoji={product.emoji}
           hue={product.hue}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+        {/* Subtle image overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
+
+        {/* STATUS */}
+        <div className="absolute left-3 top-3 flex flex-col items-start gap-2">
           <span
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm ${
-              isInStock ? "bg-success text-white" : "bg-warning text-white"
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] shadow-sm ${
+              isInStock
+                ? "bg-emerald-600 text-white"
+                : "bg-amber-500 text-white"
             }`}
           >
-            {isInStock ? "● In Stock" : "◐ Pre-Order"}
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+
+            {isInStock
+              ? "In stock"
+              : "Preorder"}
           </span>
-          {product.tag && (
-            <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-primary text-primary-foreground shadow-sm inline-flex items-center gap-1 w-fit">
-              <Zap className="w-2.5 h-2.5" /> {product.tag}
+
+          {showTag && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground shadow-sm">
+              <Sparkles className="h-3 w-3" />
+
+              {product.tag}
             </span>
           )}
         </div>
 
+        {/* WISHLIST */}
         <button
           type="button"
           onClick={onToggleWishlist}
           disabled={wishlistPending}
-          aria-label={isSaved ? "Remove from wishlist" : "Add to wishlist"}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur shadow-sm flex items-center justify-center hover:bg-white transition-colors disabled:opacity-60"
+          aria-label={
+            isSaved
+              ? "Remove from wishlist"
+              : "Add to wishlist"
+          }
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/60 bg-white/90 text-gray-700 shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Heart className={`w-4.5 h-4.5 ${isSaved ? "fill-pink-500 text-pink-500" : "text-gray-600"}`} />
+          <Heart
+            className={`h-[18px] w-[18px] ${
+              isSaved
+                ? "fill-rose-500 text-rose-500"
+                : "text-gray-700"
+            }`}
+          />
         </button>
       </div>
 
-      {/* info */}
-      <div className="p-5 flex flex-col gap-4 flex-1">
+      {/* PRODUCT DETAILS */}
+      <div className="flex h-full flex-col p-5">
         <div className="flex-1">
-          <h3 className="font-display font-bold text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          {/* CATEGORY */}
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {formatCategory(
+              product.category,
+            )}
+          </p>
+
+          {/* NAME */}
+          <h3 className="line-clamp-2 min-h-[48px] font-display text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
             {product.name}
           </h3>
-          {!isInStock && product.eta && (
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-warning mt-2 uppercase tracking-wide">
-              <Clock className="w-3 h-3" />
-              {product.eta}
-            </div>
-          )}
-          {!authenticated ? (
-            <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-yellow-800">
-              Sign in to place an order
-            </div>
-          ) : null}
+
+          {/* ETA */}
+          {!isInStock &&
+            product.eta && (
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700">
+                <Clock3 className="h-3.5 w-3.5" />
+
+                {product.eta}
+              </div>
+            )}
         </div>
 
-        {authenticated ? (
-          <div className="flex items-center gap-2">
-            <OrderDialog product={product}>
+        {/* PRICE */}
+        <div className="mt-5 border-t border-border/60 pt-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            {isInStock
+              ? "Price"
+              : "Preorder price"}
+          </p>
+
+          <p className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">
+            {formatPrice(product.price)}
+          </p>
+        </div>
+
+        {/* ACTIONS */}
+        <div className="mt-4">
+          {authenticated ? (
+            <div className="flex gap-2">
+              <OrderDialog
+                product={product}
+              >
+                <button
+                  type="button"
+                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                    isInStock
+                      ? "bg-primary text-primary-foreground hover:opacity-90"
+                      : "bg-amber-500 text-white hover:bg-amber-600"
+                  }`}
+                >
+                  {isInStock
+                    ? "Buy now"
+                    : "Preorder now"}
+                </button>
+              </OrderDialog>
+
               <button
                 type="button"
-                className={`flex-1 rounded-2xl border border-border bg-muted/50 ${accentBg} group-hover:border-transparent transition-all duration-300 text-left`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onAddToCart();
+                }}
+                disabled={
+                  addToCart.isPending
+                }
+                aria-label="Add to cart"
+                title="Add to cart"
+                className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-border bg-background transition hover:border-primary/40 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <div className="px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <div className={`text-[9px] font-bold uppercase tracking-widest text-muted-foreground transition-colors ${labelHover}`}>
-                      Buy now
-                    </div>
-                    <div className={`text-lg font-display font-bold text-foreground transition-colors ${priceHover}`}>
-                      {formatPrice(product.price)}
-                    </div>
-                  </div>
-                </div>
+                {justAdded ? (
+                  <Check className="h-5 w-5 text-emerald-600" />
+                ) : (
+                  <ShoppingCart className="h-5 w-5 text-foreground" />
+                )}
               </button>
-            </OrderDialog>
-
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onAddToCart();
-              }}
-              disabled={addToCart.isPending}
-              aria-label="Add to cart"
-              className="shrink-0 w-[52px] h-[52px] rounded-2xl border border-border bg-background flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all disabled:opacity-60"
+              onClick={goToLogin}
+              className="w-full rounded-xl bg-foreground px-4 py-3 text-center text-sm font-semibold text-background transition hover:opacity-90"
             >
-              {justAdded ? (
-                <Check className="w-5 h-5 text-success" />
-              ) : (
-                <ShoppingCart className="w-5 h-5 text-foreground" />
-              )}
+              Sign in to order
             </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/login" })}
-            className={`block w-full rounded-2xl border border-border bg-muted/50 ${accentBg} group-hover:border-transparent transition-all duration-300 text-left`}
-          >
-            <div className="px-4 py-3 flex items-center justify-between">
-              <div>
-                <div className={`text-[9px] font-bold uppercase tracking-widest text-muted-foreground transition-colors ${labelHover}`}>
-                  Login or sign up to order
-                </div>
-                <div className={`text-xl font-display font-bold text-foreground transition-colors ${priceHover}`}>
-                  {formatPrice(product.price)}
-                </div>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-card shadow-sm flex items-center justify-center text-warning">
-                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm2.25 13.25H9.75a.75.75 0 0 1-.75-.75v-.5c0-1.5 3-1.5 3 0v.5a.75.75 0 0 1-.75.75Zm2.12-5.22a.75.75 0 0 1-.15 1.05c-.47.3-.88.5-1.18.63-.28.12-.4.2-.44.3a.78.78 0 0 0-.05.27v.12a.75.75 0 0 1-1.5 0v-.12c0-.62.23-1.05.54-1.3.33-.28.97-.54 1.64-.84.7-.3 1.22-.7 1.22-1.58a.75.75 0 0 1 1.5 0c0 1.4-.87 1.95-1.8 2.2Z"/>
-                </svg>
-              </div>
-            </div>
-          </button>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </article>
   );
+}
+
+/*
+ * Converts:
+ *
+ * iphones      -> iPhones
+ * electronics  -> Electronics
+ * laptops      -> Laptops
+ */
+function formatCategory(
+  category: string,
+) {
+  if (
+    category.toLowerCase() ===
+    "iphones"
+  ) {
+    return "iPhones";
+  }
+
+  return category
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase(),
+    );
 }

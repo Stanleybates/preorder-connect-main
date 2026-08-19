@@ -13,6 +13,20 @@ import { restoreCustomerSession } from "../lib/customer-auth-store";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import * as Sentry from "@sentry/react";
+
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: (import.meta.env.VITE_SENTRY_ENVIRONMENT as string) || "development",
+    tracesSampleRate: 0.2,
+    dataCollection: {
+      userInfo: false,
+      httpBodies: [],
+    },
+  });
+}
 import { BottomNav } from "../components/BottomNav";
 import { WhatsAppFab } from "../components/WhatsAppFab";
 
